@@ -1,0 +1,79 @@
+from vpython import *
+
+canvas(align="right", width=700, height=400)
+scene.autoscale = False
+
+g1 = graph(title="Energy vs displacement", xtitle="displacement", ytitle="Energy", align="None")
+kinetic_curve = gcurve(color=color.red, label="Kinetic", graph=g1)
+potential_curve = gcurve(color=color.blue, label="Potential", graph=g1)
+
+L = 8
+spring = helix(pos=vector(0, 0, 0), radius=.6, length=L, axis=vector(1, 0, 0),
+               coils=22, k=1, amplitude=2)
+
+block = box(pos=spring.pos + vector(spring.length, 0, 0), size=vector(2, 2, 2), mass=0.1, color=color.red)
+
+wall = box(pos=spring.pos, size=vector(.5, 3, 4), color=color.green)
+
+surface = box(pos=vector(spring.length / 2, -block.height / 2 - .25, 0), size=vector(L + 10, .5, 4), color=color.green)
+
+
+def amplitude_adjust(s):
+    spring.amplitude = amp_slider.value
+    amp_cap.text = str(amp_slider.value) + " cm\n"
+    potential_curve.delete()
+    kinetic_curve.delete()
+
+
+wtext(text="\n\nAmplitude")
+
+amp_slider = slider(min=2, max=5, value=2, step=0.1, bind=amplitude_adjust)
+amp_cap = wtext(text=str(amp_slider.value) + " cm\n")
+
+
+def mass_adjust(m):
+    block.mass = mass_slider.value
+    v = mass_slider.value
+    s = 3 + ((v - mass_slider.min) / (mass_slider.max - mass_slider.min))
+    block.size = vector(s, 2, s)
+    mass_cap.text = str(mass_slider.value * 1000) + " g\n"
+    potential_curve.delete()
+    kinetic_curve.delete()
+
+
+wtext(text="\n\nMass")
+
+mass_slider = slider(min=0.1, max=0.5, value=0.1, step=0.02, bind=mass_adjust)
+mass_cap = wtext(text=str(mass_slider.value * 1000) + " g\n")
+
+
+def k_adjust(k):
+    spring.k = k_slider.value
+    k_cap.text = str(k_slider.value) + " N/m\n"
+    potential_curve.delete()
+    kinetic_curve.delete()
+
+
+wtext(text="\n\nSpring Constant")
+
+k_slider = slider(min=0.2, max=10, value=1, bind=k_adjust)
+k_cap = wtext(text=str(k_slider.value) + " N/m\n")
+
+dt = 0.01
+t = 0
+while True:
+    rate(100)
+    A = spring.amplitude
+    w0 = sqrt(spring.k / block.mass)
+    T = 2 * pi / w0
+    xt = A * cos(w0 * t)
+    block.pos.x = L + xt
+    spring.length = block.pos.x
+    max_Energy = (1 / 2) * spring.k * (A / 100) ** 2
+    potential = (1 / 2) * spring.k * (xt / 100) ** 2
+    kinetic = max_Energy - potential
+
+    kinetic_curve.plot(xt, kinetic)
+    potential_curve.plot(xt, potential)
+
+    t += dt
